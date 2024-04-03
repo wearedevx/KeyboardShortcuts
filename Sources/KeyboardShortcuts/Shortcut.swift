@@ -249,7 +249,7 @@
 
     extension KeyboardShortcuts.Shortcut {
         @MainActor // `TISGetInputSourceProperty` crashes if called on a non-main thread.
-        fileprivate func keyToCharacter() -> String? {
+        public func keyToCharacter() -> String? {
             // Some characters cannot be automatically translated.
             if
                 let key,
