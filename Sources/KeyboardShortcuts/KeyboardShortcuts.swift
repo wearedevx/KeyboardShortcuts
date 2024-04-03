@@ -283,7 +283,7 @@
          You would usually not need this as the user would be the one setting the shortcut in a settings user-interface, but it can be useful when, for example, migrating from a different keyboard shortcuts package.
          */
         public static func setShortcut(_ shortcut: Shortcut?, for name: Name) {
-            if let shortcut {
+            if let shortcut, shortcut.access == .systemGlobal {
                 userDefaultsSet(name: name, shortcut: shortcut)
             } else {
                 if name.defaultShortcut != nil {
