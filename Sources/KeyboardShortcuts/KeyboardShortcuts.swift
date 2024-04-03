@@ -2,7 +2,7 @@
     import AppKit.NSMenu
 
     public extension KeyboardShortcuts {
-        enum Access {
+        enum Access: String, Codable {
             case appLocal
             case systemGlobal
         }
