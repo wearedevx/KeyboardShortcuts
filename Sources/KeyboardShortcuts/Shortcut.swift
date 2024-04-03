@@ -247,9 +247,20 @@
         .f20: stringFromKeyCode(NSF20FunctionKey),
     ]
 
-    extension KeyboardShortcuts.Shortcut {
+    public extension KeyboardShortcuts.Shortcut {
+        var character: Character? {
+            if
+                let key,
+                let character = keyToCharacterMapping[key]
+            {
+                return character.first
+            }
+
+            return nil
+        }
+
         @MainActor // `TISGetInputSourceProperty` crashes if called on a non-main thread.
-        public func keyToCharacter() -> String? {
+        func keyToCharacter() -> String? {
             // Some characters cannot be automatically translated.
             if
                 let key,
@@ -299,7 +310,7 @@
          - Note: Don't forget to also pass `.modifiers` to `NSMenuItem#keyEquivalentModifierMask`.
          */
         @MainActor
-        var keyEquivalent: String {
+        internal var keyEquivalent: String {
             let keyString = keyToCharacter() ?? ""
 
             guard keyString.count <= 1 else {
