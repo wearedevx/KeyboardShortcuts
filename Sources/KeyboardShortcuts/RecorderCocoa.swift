@@ -217,7 +217,7 @@
 
                 eventMonitor = LocalEventMonitor(events: [.keyDown, .leftMouseUp, .rightMouseUp]) { [weak self] event in
                     guard let self else {
-                        return nil
+                        return event
                     }
 
                     let clickPoint = self.convert(event.locationInWindow, from: nil)
