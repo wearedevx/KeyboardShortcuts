@@ -67,6 +67,7 @@
                         LabeledContent {
                             _Recorder(
                                 name: name,
+                                access: access,
                                 onChange: onChange
                             )
                         } label: {
@@ -75,6 +76,7 @@
                     } else {
                         _Recorder(
                             name: name,
+                            access: access,
                             onChange: onChange
                         )
                         .formLabel {
@@ -84,6 +86,7 @@
                 } else {
                     _Recorder(
                         name: name,
+                        access: access,
                         onChange: onChange
                     )
                 }
