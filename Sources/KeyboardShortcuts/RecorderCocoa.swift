@@ -5,6 +5,7 @@
     public extension KeyboardShortcuts {
         enum PostOnChange {
             case reset
+            case valid
         }
 
         /**
