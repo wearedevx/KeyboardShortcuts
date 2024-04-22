@@ -3,6 +3,10 @@
     import Carbon.HIToolbox
 
     public extension KeyboardShortcuts {
+        enum PostOnChange {
+            case reset
+        }
+
         /**
          A `NSView` that lets the user record a keyboard shortcut.
 
@@ -28,7 +32,7 @@
          */
         final class RecorderCocoa: NSSearchField, NSSearchFieldDelegate {
             private let minimumWidth = 130.0
-            private let onChange: ((_ shortcut: Shortcut?) -> Void)?
+            private let onChange: ((_ shortcut: Shortcut?) -> PostOnChange)?
             private var access: KeyboardShortcuts.Access = .systemGlobal
             private var canBecomeKey = false
             private var eventMonitor: LocalEventMonitor?
@@ -84,11 +88,12 @@
              */
             public required init(
                 for name: Name,
-                access _: KeyboardShortcuts.Access = .systemGlobal,
-                onChange: ((_ shortcut: Shortcut?) -> Void)? = nil
+                access: KeyboardShortcuts.Access = .systemGlobal,
+                onChange: ((_ shortcut: Shortcut?) -> PostOnChange)? = nil
             ) {
                 shortcutName = name
                 self.onChange = onChange
+                self.access = access
 
                 super.init(frame: .zero)
                 delegate = self
@@ -325,7 +330,9 @@
 
             private func saveShortcut(_ shortcut: Shortcut?) {
                 setShortcut(shortcut, for: shortcutName)
-                onChange?(shortcut)
+                if case .reset = onChange?(shortcut) {
+                    clear()
+                }
             }
         }
     }

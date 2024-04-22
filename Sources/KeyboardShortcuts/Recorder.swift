@@ -7,7 +7,7 @@
 
             let name: Name
             let access: KeyboardShortcuts.Access
-            let onChange: ((_ shortcut: Shortcut?) -> Void)?
+            let onChange: ((_ shortcut: Shortcut?) -> PostOnChange)?
 
             func makeNSView(context _: Context) -> NSViewType {
                 .init(for: name, access: access, onChange: onChange)
@@ -43,14 +43,14 @@
         public struct Recorder<Label: View>: View { // swiftlint:disable:this type_name
             private let name: Name
             private let access: KeyboardShortcuts.Access
-            private let onChange: ((Shortcut?) -> Void)?
+            private let onChange: ((Shortcut?) -> PostOnChange)?
             private let hasLabel: Bool
             private let label: Label
 
             init(
                 for name: Name,
                 access: KeyboardShortcuts.Access = .systemGlobal,
-                onChange: ((Shortcut?) -> Void)? = nil,
+                onChange: ((Shortcut?) -> PostOnChange)? = nil,
                 hasLabel: Bool,
                 @ViewBuilder label: () -> Label
             ) {
@@ -102,7 +102,7 @@
         init(
             for name: KeyboardShortcuts.Name,
             access _: KeyboardShortcuts.Access = .systemGlobal,
-            onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil
+            onChange: ((KeyboardShortcuts.Shortcut?) -> KeyboardShortcuts.PostOnChange)? = nil
         ) {
             self.init(
                 for: name,
@@ -122,7 +122,7 @@
             _ title: LocalizedStringKey,
             name: KeyboardShortcuts.Name,
             access: KeyboardShortcuts.Access = .systemGlobal,
-            onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil
+            onChange: ((KeyboardShortcuts.Shortcut?) -> KeyboardShortcuts.PostOnChange)? = nil
         ) {
             self.init(
                 for: name,
@@ -146,7 +146,7 @@
             _ title: String,
             name: KeyboardShortcuts.Name,
             access _: KeyboardShortcuts.Access = .systemGlobal,
-            onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil
+            onChange: ((KeyboardShortcuts.Shortcut?) -> KeyboardShortcuts.PostOnChange)? = nil
         ) {
             self.init(
                 for: name,
@@ -167,7 +167,7 @@
         init(
             for name: KeyboardShortcuts.Name,
             access _: KeyboardShortcuts.Access = .systemGlobal,
-            onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil,
+            onChange: ((KeyboardShortcuts.Shortcut?) -> KeyboardShortcuts.PostOnChange)? = nil,
             @ViewBuilder label: () -> Label
         ) {
             self.init(

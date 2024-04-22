@@ -1,6 +1,8 @@
 #if os(macOS)
     import AppKit
     import Carbon.HIToolbox
+    import CoreGraphics
+    import Foundation
 
     public extension KeyboardShortcuts {
         /**
