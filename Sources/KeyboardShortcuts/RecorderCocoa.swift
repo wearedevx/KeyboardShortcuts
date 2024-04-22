@@ -33,7 +33,7 @@
          */
         final class RecorderCocoa: NSSearchField, NSSearchFieldDelegate {
             private let minimumWidth = 130.0
-            private let onChange: ((_ shortcut: Shortcut?) -> PostOnChange)?
+            private let onChange: ((_ shortcut: Shortcut?, _ post: (PostOnChange) -> Void) -> Void)?
             private var access: KeyboardShortcuts.Access = .systemGlobal
             private var canBecomeKey = false
             private var eventMonitor: LocalEventMonitor?
@@ -90,7 +90,7 @@
             public required init(
                 for name: Name,
                 access: KeyboardShortcuts.Access = .systemGlobal,
-                onChange: ((_ shortcut: Shortcut?) -> PostOnChange)? = nil
+                onChange: ((_ shortcut: Shortcut?, _ post: (PostOnChange) -> Void) -> Void)? = nil
             ) {
                 shortcutName = name
                 self.onChange = onChange
@@ -331,8 +331,10 @@
 
             private func saveShortcut(_ shortcut: Shortcut?) {
                 setShortcut(shortcut, for: shortcutName)
-                if case .reset = onChange?(shortcut) {
-                    clear()
+                onChange?(shortcut) { post in
+                    if case .reset = post {
+                        self.clear()
+                    }
                 }
             }
         }
