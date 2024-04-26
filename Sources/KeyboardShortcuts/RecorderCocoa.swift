@@ -34,6 +34,7 @@
         final class RecorderCocoa: NSSearchField, NSSearchFieldDelegate {
             private let minimumWidth = 130.0
             private let onChange: ((_ shortcut: Shortcut?, _ post: @escaping (PostOnChange) -> Void) -> Void)?
+            private let onClear: (() -> Void)?
             private var access: KeyboardShortcuts.Access = .systemGlobal
             private var canBecomeKey = false
             private var eventMonitor: LocalEventMonitor?
@@ -90,10 +91,12 @@
             public required init(
                 for name: Name,
                 access: KeyboardShortcuts.Access = .systemGlobal,
-                onChange: ((_ shortcut: Shortcut?, _ post: @escaping (PostOnChange) -> Void) -> Void)? = nil
+                onChange: ((_ shortcut: Shortcut?, _ post: @escaping (PostOnChange) -> Void) -> Void)? = nil,
+                onClear: (() -> Void)? = nil
             ) {
                 shortcutName = name
                 self.onChange = onChange
+                self.onClear = onClear
                 self.access = access
 
                 super.init(frame: .zero)
@@ -265,6 +268,7 @@
                         || event.specialKey == .backspace
                     {
                         self.clear()
+                        self.onClear?()
                         return nil
                     }
 

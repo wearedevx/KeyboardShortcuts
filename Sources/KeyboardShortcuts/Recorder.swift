@@ -8,9 +8,10 @@
             let name: Name
             let access: KeyboardShortcuts.Access
             let onChange: ((_ shortcut: Shortcut?, _ post: @escaping (PostOnChange) -> Void) -> Void)?
+            let onClear: (() -> Void)?
 
             func makeNSView(context _: Context) -> NSViewType {
-                .init(for: name, access: access, onChange: onChange)
+                .init(for: name, access: access, onChange: onChange, onClear: onClear)
             }
 
             func updateNSView(_ nsView: NSViewType, context _: Context) {
@@ -44,6 +45,7 @@
             private let name: Name
             private let access: KeyboardShortcuts.Access
             private let onChange: ((Shortcut?, @escaping (PostOnChange) -> Void) -> Void)?
+            private let onClear: (() -> Void)?
             private let hasLabel: Bool
             private let label: Label
 
@@ -51,12 +53,14 @@
                 for name: Name,
                 access: KeyboardShortcuts.Access = .systemGlobal,
                 onChange: ((Shortcut?, @escaping (PostOnChange) -> Void) -> Void)? = nil,
+                onClear: (() -> Void)? = nil,
                 hasLabel: Bool,
                 @ViewBuilder label: () -> Label
             ) {
                 self.name = name
                 self.access = access
                 self.onChange = onChange
+                self.onClear = onClear
                 self.hasLabel = hasLabel
                 self.label = label()
             }
@@ -68,7 +72,8 @@
                             _Recorder(
                                 name: name,
                                 access: access,
-                                onChange: onChange
+                                onChange: onChange,
+                                onClear: onClear
                             )
                         } label: {
                             label
@@ -77,7 +82,8 @@
                         _Recorder(
                             name: name,
                             access: access,
-                            onChange: onChange
+                            onChange: onChange,
+                            onClear: onClear
                         )
                         .formLabel {
                             label
@@ -87,7 +93,8 @@
                     _Recorder(
                         name: name,
                         access: access,
-                        onChange: onChange
+                        onChange: onChange,
+                        onClear: onClear
                     )
                 }
             }
