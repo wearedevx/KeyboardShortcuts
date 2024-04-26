@@ -333,7 +333,9 @@
                 setShortcut(shortcut, for: shortcutName)
                 onChange?(shortcut) { post in
                     if case .reset = post {
-                        self.clear()
+                        DispatchQueue.main.async {
+                            self.clear()
+                        }
                     }
                 }
             }
