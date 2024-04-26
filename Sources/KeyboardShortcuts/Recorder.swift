@@ -108,12 +108,15 @@
          */
         init(
             for name: KeyboardShortcuts.Name,
-            access _: KeyboardShortcuts.Access = .systemGlobal,
-            onChange: ((KeyboardShortcuts.Shortcut?, @escaping (KeyboardShortcuts.PostOnChange) -> Void) -> Void)? = nil
+            access: KeyboardShortcuts.Access = .systemGlobal,
+            onChange: ((KeyboardShortcuts.Shortcut?, @escaping (KeyboardShortcuts.PostOnChange) -> Void) -> Void)? = nil,
+            onClear: (() -> Void)? = nil
         ) {
             self.init(
                 for: name,
+                access: access,
                 onChange: onChange,
+                onClear: onClear,
                 hasLabel: false
             ) {}
         }
@@ -129,12 +132,14 @@
             _ title: LocalizedStringKey,
             name: KeyboardShortcuts.Name,
             access: KeyboardShortcuts.Access = .systemGlobal,
-            onChange: ((KeyboardShortcuts.Shortcut?, @escaping (KeyboardShortcuts.PostOnChange) -> Void) -> Void)? = nil
+            onChange: ((KeyboardShortcuts.Shortcut?, @escaping (KeyboardShortcuts.PostOnChange) -> Void) -> Void)? = nil,
+            onClear: (() -> Void)? = nil
         ) {
             self.init(
                 for: name,
                 access: access,
                 onChange: onChange,
+                onClear: onClear,
                 hasLabel: true
             ) {
                 Text(title)
@@ -152,12 +157,15 @@
         init(
             _ title: String,
             name: KeyboardShortcuts.Name,
-            access _: KeyboardShortcuts.Access = .systemGlobal,
-            onChange: ((KeyboardShortcuts.Shortcut?, @escaping (KeyboardShortcuts.PostOnChange) -> Void) -> Void)? = nil
+            access: KeyboardShortcuts.Access = .systemGlobal,
+            onChange: ((KeyboardShortcuts.Shortcut?, @escaping (KeyboardShortcuts.PostOnChange) -> Void) -> Void)? = nil,
+            onClear: (() -> Void)? = nil
         ) {
             self.init(
                 for: name,
+                access: access,
                 onChange: onChange,
+                onClear: onClear,
                 hasLabel: true
             ) {
                 Text(title)
@@ -173,13 +181,16 @@
          */
         init(
             for name: KeyboardShortcuts.Name,
-            access _: KeyboardShortcuts.Access = .systemGlobal,
+            access: KeyboardShortcuts.Access = .systemGlobal,
             onChange: ((KeyboardShortcuts.Shortcut?, @escaping (KeyboardShortcuts.PostOnChange) -> Void) -> Void)? = nil,
+            onClear: (() -> Void)? = nil,
             @ViewBuilder label: () -> Label
         ) {
             self.init(
                 for: name,
+                access: access,
                 onChange: onChange,
+                onClear: onClear,
                 hasLabel: true,
                 label: label
             )
