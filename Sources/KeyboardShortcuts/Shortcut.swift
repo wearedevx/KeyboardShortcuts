@@ -94,7 +94,7 @@
         }
     }
 
-    extension KeyboardShortcuts.Shortcut {
+    public extension KeyboardShortcuts.Shortcut {
         /**
          System-defined keyboard shortcuts.
          */
@@ -114,7 +114,7 @@
         }
     }
 
-    extension KeyboardShortcuts.Shortcut {
+    public extension KeyboardShortcuts.Shortcut {
         /**
          Recursively finds a menu item in the given menu that has a matching key equivalent and modifier.
          */
