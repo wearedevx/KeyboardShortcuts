@@ -297,6 +297,24 @@
             }
         }
 
+        public static func getName(for shortcut: Shortcut) -> Name? {
+            let defaults = UserDefaults.standard.dictionaryRepresentation()
+
+            let names = defaults.keys
+                .filter { $0.hasPrefix(userDefaultsPrefix) }
+                .map { Name(String($0.dropFirst(userDefaultsPrefix.count))) }
+
+            for name in names {
+                guard getShortcut(for: name) == shortcut else {
+                    continue
+                }
+
+                return name
+            }
+
+            return nil
+        }
+
         /**
          Get the keyboard shortcut for a name.
          */
@@ -316,15 +334,9 @@
                 return
             }
 
-            var shortcutName: KeyboardShortcuts.Name?
-
             for (name, handlers) in legacyKeyDownHandlers {
                 guard getShortcut(for: name) == shortcut else {
                     continue
-                }
-
-                if shortcutName == nil {
-                    shortcutName = name
                 }
 
                 for handler in handlers {
@@ -337,18 +349,14 @@
                     continue
                 }
 
-                if shortcutName == nil {
-                    shortcutName = name
-                }
-
                 for handler in handlers.values {
                     handler()
                 }
             }
 
-            if let shortcutName {
+            if let name = getName(for: shortcut) {
                 for handler in allShortcutsKeyDownHandlers {
-                    handler(shortcutName)
+                    handler(name)
                 }
             }
         }
@@ -358,15 +366,9 @@
                 return
             }
 
-            var shortcutName: Name?
-
             for (name, handlers) in legacyKeyUpHandlers {
                 guard getShortcut(for: name) == shortcut else {
                     continue
-                }
-
-                if shortcutName == nil {
-                    shortcutName = name
                 }
 
                 for handler in handlers {
@@ -379,18 +381,14 @@
                     continue
                 }
 
-                if shortcutName == nil {
-                    shortcutName = name
-                }
-
                 for handler in handlers.values {
                     handler()
                 }
             }
 
-            if let shortcutName {
+            if let name = getName(for: shortcut) {
                 for handler in allShortcutsKeyUpHandlers {
-                    handler(shortcutName)
+                    handler(name)
                 }
             }
         }
