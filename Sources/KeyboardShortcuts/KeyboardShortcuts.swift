@@ -13,6 +13,7 @@
         private static var registeredShortcuts = Set<Shortcut>()
 
         private static var allShortcutsKeyDownHandlers = [(KeyboardShortcuts.Name) -> Void]()
+        private static var allShortcutsKeyUpHandlers = [(KeyboardShortcuts.Name) -> Void]()
 
         private static var legacyKeyDownHandlers = [Name: [() -> Void]]()
         private static var legacyKeyUpHandlers = [Name: [() -> Void]]()
@@ -322,7 +323,9 @@
                     continue
                 }
 
-                shortcutName = name
+                if shortcutName == nil {
+                    shortcutName = name
+                }
 
                 for handler in handlers {
                     handler()
@@ -355,9 +358,15 @@
                 return
             }
 
+            var shortcutName: Name?
+
             for (name, handlers) in legacyKeyUpHandlers {
                 guard getShortcut(for: name) == shortcut else {
                     continue
+                }
+
+                if shortcutName == nil {
+                    shortcutName = name
                 }
 
                 for handler in handlers {
@@ -370,8 +379,18 @@
                     continue
                 }
 
+                if shortcutName == nil {
+                    shortcutName = name
+                }
+
                 for handler in handlers.values {
                     handler()
+                }
+            }
+
+            if let shortcutName {
+                for handler in allShortcutsKeyUpHandlers {
+                    handler(shortcutName)
                 }
             }
         }
@@ -404,6 +423,10 @@
 
         public static func onKeyDown(_ action: @escaping (Name) -> Void) {
             allShortcutsKeyDownHandlers.append(action)
+        }
+
+        public static func onKeyUp(_ action: @escaping (Name) -> Void) {
+            allShortcutsKeyUpHandlers.append(action)
         }
 
         /**
