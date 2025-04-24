@@ -272,7 +272,16 @@
                         return nil
                     }
 
+                    // Keys without modifiers are not allowed.
                     // The “shift” key is not allowed without other modifiers or a function key, since it doesn't actually work.
+                    if
+                        event.modifiers.isEmpty
+                        || event.modifiers == [.shift]
+                    {
+                        NSSound.beep()
+                        return nil
+                    }
+
                     guard
                         var shortcut = Shortcut(event: event)
                     else {
