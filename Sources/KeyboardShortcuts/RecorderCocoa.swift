@@ -114,8 +114,9 @@
                 super.init(frame: .zero)
                 if !usesNativeClearButton, let original = cell as? NSSearchFieldCell {
                     let replacement = ExternalClearRecorderCell(textCell: original.stringValue)
-                    replacement.isBezeled = original.isBezeled
                     replacement.isBordered = original.isBordered
+                    // Setting isBordered also clears isBezeled, even when setting it to false.
+                    replacement.isBezeled = original.isBezeled
                     replacement.bezelStyle = original.bezelStyle
                     replacement.controlSize = original.controlSize
                     replacement.isEditable = original.isEditable

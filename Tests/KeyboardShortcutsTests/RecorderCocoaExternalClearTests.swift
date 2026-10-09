@@ -91,19 +91,52 @@
             let recorder = KeyboardShortcuts.RecorderCocoa(
                 for: name, access: .appLocal, usesNativeClearButton: false
             )
+            let nativeRecorder = KeyboardShortcuts.RecorderCocoa(for: name, access: .appLocal)
             let cell = try searchCell(recorder)
+            let nativeCell = try searchCell(nativeRecorder)
+            let nativeIsBezeled = nativeCell.isBezeled
+            let nativeIsBordered = nativeCell.isBordered
+            let nativeBezelStyle = nativeCell.bezelStyle
+            let nativeFont = nativeCell.font
+            let nativeControlSize = nativeCell.controlSize
+
+            func assertNativeAppearance(file: StaticString = #filePath, line: UInt = #line) {
+                // Setting isBordered after isBezeled can erase the native rounded bezel.
+                for control in [recorder, nativeRecorder] {
+                    XCTAssertEqual(control.isBezeled, nativeIsBezeled, file: file, line: line)
+                    XCTAssertEqual(control.isBordered, nativeIsBordered, file: file, line: line)
+                    XCTAssertEqual(control.bezelStyle, nativeBezelStyle, file: file, line: line)
+                    XCTAssertEqual(control.font, nativeFont, file: file, line: line)
+                    XCTAssertEqual(control.controlSize, nativeControlSize, file: file, line: line)
+                }
+                for searchCell in [cell, nativeCell] {
+                    XCTAssertEqual(searchCell.isBezeled, nativeIsBezeled, file: file, line: line)
+                    XCTAssertEqual(searchCell.isBordered, nativeIsBordered, file: file, line: line)
+                    XCTAssertEqual(searchCell.bezelStyle, nativeBezelStyle, file: file, line: line)
+                    XCTAssertEqual(searchCell.font, nativeFont, file: file, line: line)
+                    XCTAssertEqual(searchCell.controlSize, nativeControlSize, file: file, line: line)
+                }
+            }
+
+            assertNativeAppearance()
             let frame = CGRect(x: 10, y: 10, width: 180, height: 24)
             recorder.frame = frame
             let populatedRect = cell.searchTextRect(forBounds: recorder.bounds)
             let minimumWidth = recorder.intrinsicContentSize.width
             XCTAssertNil(cell.cancelButtonCell)
             let window = ownedWindow(containing: recorder)
-            defer { close(window, recorders: [recorder]) }
+            let nativeWindow = ownedWindow(containing: nativeRecorder)
+            defer {
+                close(nativeWindow, recorders: [nativeRecorder])
+                close(window, recorders: [recorder])
+            }
             try await focus(recorder, in: window)
             XCTAssertNil(cell.cancelButtonCell)
+            assertNativeAppearance()
             XCTAssertTrue(window.makeFirstResponder(nil))
             XCTAssertFalse(KeyboardShortcuts.isPaused)
             XCTAssertNil(cell.cancelButtonCell)
+            assertNativeAppearance()
 
             KeyboardShortcuts.reset(name)
             let emptyRect = cell.searchTextRect(forBounds: recorder.bounds)
@@ -116,10 +149,21 @@
             XCTAssertEqual(recorder.frame, frame)
             XCTAssertEqual(recorder.intrinsicContentSize.width, minimumWidth)
             XCTAssertGreaterThanOrEqual(minimumWidth, 130)
+            XCTAssertEqual(nativeRecorder.stringValue, "")
+            assertNativeAppearance()
+
+            try await focus(nativeRecorder, in: nativeWindow)
+            assertNativeAppearance()
+            XCTAssertTrue(nativeWindow.makeFirstResponder(nil))
+            XCTAssertFalse(KeyboardShortcuts.isPaused)
+            assertNativeAppearance()
 
             recorder.shortcutName = replacementName
+            nativeRecorder.shortcutName = replacementName
             XCTAssertEqual(cell.searchTextRect(forBounds: recorder.bounds), populatedRect)
             XCTAssertNil(cell.cancelButtonCell)
+            XCTAssertEqual(recorder.stringValue, nativeRecorder.stringValue)
+            assertNativeAppearance()
         }
 
         func testClearPreservesAnotherControlsFocus() throws {
