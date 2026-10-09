@@ -32,12 +32,16 @@
          ```
          */
         final class RecorderCocoa: NSSearchField, NSSearchFieldDelegate {
+            private static weak var recordingOwner: RecorderCocoa?
+            private static let recorders = NSHashTable<RecorderCocoa>.weakObjects()
             private let minimumWidth = 130.0
             private let onChange: ((_ shortcut: Shortcut?, _ post: @escaping (PostOnChange) -> Void) -> Void)?
             private let onClear: (() -> Void)?
+            private let usesNativeClearButton: Bool
             private var access: KeyboardShortcuts.Access = .systemGlobal
             private var canBecomeKey = false
             private var eventMonitor: LocalEventMonitor?
+            private var shortcutChangeID = UUID()
             private var shortcutsNameChangeObserver: NSObjectProtocol?
             private var windowDidResignKeyObserver: NSObjectProtocol?
             private var windowDidBecomeKeyObserver: NSObjectProtocol?
@@ -53,6 +57,7 @@
                         return
                     }
 
+                    shortcutChangeID = UUID()
                     setStringValue(name: shortcutName)
 
                     // This doesn't seem to be needed anymore, but I cannot test on older OS versions, so keeping it just in case.
@@ -80,17 +85,23 @@
             private var showsCancelButton: Bool {
                 get { (cell as? NSSearchFieldCell)?.cancelButtonCell != nil }
                 set {
-                    (cell as? NSSearchFieldCell)?.cancelButtonCell = newValue ? cancelButton : nil
+                    (cell as? NSSearchFieldCell)?.cancelButtonCell = usesNativeClearButton && newValue ? cancelButton : nil
+                    if let externalCell = cell as? ExternalClearRecorderCell {
+                        externalCell.reservesClearButtonSpace = newValue
+                        needsDisplay = true
+                    }
                 }
             }
 
             /**
              - Parameter name: Strongly-typed keyboard shortcut name.
+             - Parameter usesNativeClearButton: Set to false when providing an external clear control. The recorder reserves trailing text space and passes mouse-up events through.
              - Parameter onChange: Callback which will be called when the keyboard shortcut is changed/removed by the user. This can be useful when you need more control. For example, when migrating from a different keyboard shortcut solution and you need to store the keyboard shortcut somewhere yourself instead of relying on the built-in storage. However, it's strongly recommended to just rely on the built-in storage when possible.
              */
             public required init(
                 for name: Name,
                 access: KeyboardShortcuts.Access = .systemGlobal,
+                usesNativeClearButton: Bool = true,
                 onChange: ((_ shortcut: Shortcut?, _ post: @escaping (PostOnChange) -> Void) -> Void)? = nil,
                 onClear: (() -> Void)? = nil
             ) {
@@ -98,8 +109,25 @@
                 self.onChange = onChange
                 self.onClear = onClear
                 self.access = access
+                self.usesNativeClearButton = usesNativeClearButton
 
                 super.init(frame: .zero)
+                if !usesNativeClearButton, let original = cell as? NSSearchFieldCell {
+                    let replacement = ExternalClearRecorderCell(textCell: original.stringValue)
+                    replacement.isBezeled = original.isBezeled
+                    replacement.isBordered = original.isBordered
+                    replacement.bezelStyle = original.bezelStyle
+                    replacement.controlSize = original.controlSize
+                    replacement.isEditable = original.isEditable
+                    replacement.isSelectable = original.isSelectable
+                    replacement.isScrollable = original.isScrollable
+                    replacement.drawsBackground = original.drawsBackground
+                    replacement.backgroundColor = original.backgroundColor
+                    replacement.textColor = original.textColor
+                    replacement.font = original.font
+                    replacement.focusRingType = original.focusRingType
+                    cell = replacement
+                }
                 delegate = self
                 placeholderString = "record_shortcut".localized
                 alignment = .center
@@ -115,6 +143,7 @@
                 setStringValue(name: name)
 
                 setUpEvents()
+                Self.recorders.add(self)
             }
 
             @available(*, unavailable)
@@ -139,16 +168,38 @@
                         return
                     }
 
+                    self.shortcutChangeID = UUID()
                     self.setStringValue(name: nameInNotification)
                 }
             }
 
-            private func endRecording() {
+            /// Stops recording and restores shortcut handling without changing focus.
+            public func endRecording() {
                 eventMonitor = nil
                 placeholderString = "record_shortcut".localized
                 showsCancelButton = !stringValue.isEmpty
                 restoreCaret()
-                KeyboardShortcuts.isPaused = false
+                if Self.recordingOwner === self {
+                    Self.recordingOwner = nil
+                    KeyboardShortcuts.isPaused = false
+                }
+            }
+
+            /// Clears storage directly, without invoking the native search-field button.
+            public func clearShortcut() {
+                stringValue = ""
+                endRecording()
+                blurIfOwnsFocus()
+                saveShortcut(nil)
+                onClear?()
+            }
+
+            private func blurIfOwnsFocus() {
+                if let window,
+                   window.firstResponder === self
+                    || currentEditor().map({ window.firstResponder === $0 }) == true {
+                    blur()
+                }
             }
 
             private func preventBecomingKey() {
@@ -182,6 +233,7 @@
             /// :nodoc:
             override public func viewDidMoveToWindow() {
                 guard let window else {
+                    shortcutChangeID = UUID()
                     windowDidResignKeyObserver = nil
                     windowDidBecomeKeyObserver = nil
                     endRecording()
@@ -218,14 +270,33 @@
                     return shouldBecomeFirstResponder
                 }
 
+                if Self.recordingOwner !== self {
+                    Self.recordingOwner?.endRecording()
+                }
+                invalidateShortcutChanges()
                 placeholderString = "press_shortcut".localized
                 showsCancelButton = !stringValue.isEmpty
                 hideCaret()
+                // Caret setup can re-enter the editing-ended delegate; claim ownership afterward.
+                Self.recordingOwner = self
                 KeyboardShortcuts.isPaused = true // The position here matters.
 
                 eventMonitor = LocalEventMonitor(events: [.keyDown, .leftMouseUp, .rightMouseUp]) { [weak self] event in
                     guard let self else {
                         return nil
+                    }
+
+                    if !self.usesNativeClearButton, !event.isKeyEvent {
+                        if event.window !== self.window {
+                            self.endRecording()
+                            return event
+                        }
+                        let point = self.convert(event.locationInWindow, from: nil)
+                        if !self.bounds.insetBy(dx: -3, dy: -3).contains(point) {
+                            self.blur()
+                        }
+                        // The inset SwiftUI clear button needs its mouse-up event.
+                        return event
                     }
 
                     let clickPoint = self.convert(event.locationInWindow, from: nil)
@@ -267,8 +338,12 @@
                         || event.specialKey == .deleteForward
                         || event.specialKey == .backspace
                     {
-                        self.clear()
-                        self.onClear?()
+                        if self.usesNativeClearButton {
+                            self.clear()
+                            self.onClear?()
+                        } else {
+                            self.clearShortcut()
+                        }
                         return nil
                     }
 
@@ -336,7 +411,12 @@
                     self.showsCancelButton = true
 
                     self.saveShortcut(shortcut)
-                    self.blur()
+                    if self.usesNativeClearButton {
+                        self.blur()
+                    } else {
+                        self.endRecording()
+                        self.blurIfOwnsFocus()
+                    }
 
                     return nil
                 }.start()
@@ -345,15 +425,53 @@
             }
 
             private func saveShortcut(_ shortcut: Shortcut?) {
+                let recordedName = shortcutName
                 setShortcut(shortcut, for: shortcutName)
-                onChange?(shortcut) { post in
+                invalidateShortcutChanges()
+                let changeID = shortcutChangeID
+                onChange?(shortcut) { [weak self] post in
+                    guard let self else { return }
                     if case .reset = post {
-                        DispatchQueue.main.async {
-                            self.clear()
+                        if self.usesNativeClearButton {
+                            DispatchQueue.main.async {
+                                self.clear()
+                            }
+                        } else if shortcut != nil {
+                            Task { @MainActor [weak self] in
+                                guard let self,
+                                      self.shortcutName == recordedName,
+                                      self.shortcutChangeID == changeID,
+                                      self.window != nil else { return }
+                                self.clearShortcut()
+                            }
                         }
                     }
                 }
             }
+
+            private func invalidateShortcutChanges() {
+                for recorder in Self.recorders.allObjects where recorder.shortcutName == shortcutName {
+                    recorder.shortcutChangeID = UUID()
+                }
+            }
+        }
+    }
+#endif
+
+#if os(macOS)
+    /// Reserves the native text area for an externally drawn trailing clear button.
+    private final class ExternalClearRecorderCell: NSSearchFieldCell {
+        var reservesClearButtonSpace = false
+
+        override func searchTextRect(forBounds rect: CGRect) -> CGRect {
+            var textRect = super.searchTextRect(forBounds: rect)
+            guard reservesClearButtonSpace else { return textRect }
+            let reservedWidth = min(21, textRect.width)
+            if controlView?.userInterfaceLayoutDirection == .rightToLeft {
+                textRect.origin.x += reservedWidth
+            }
+            textRect.size.width -= reservedWidth
+            return textRect
         }
     }
 #endif

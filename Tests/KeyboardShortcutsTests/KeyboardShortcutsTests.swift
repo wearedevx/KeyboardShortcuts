@@ -5,7 +5,17 @@ final class KeyboardShortcutsTests: XCTestCase {
 	// TODO: Add more tests.
 
 	override func setUpWithError() throws {
-		UserDefaults.standard.removeAll()
+		guard KeyboardShortcuts.defaults !== UserDefaults.standard else {
+			throw XCTSkip("Shortcut tests require isolated preferences")
+		}
+		KeyboardShortcuts.defaults.removeAll()
+	}
+
+	override func tearDownWithError() throws {
+		if KeyboardShortcuts.defaults !== UserDefaults.standard {
+			KeyboardShortcuts.defaults.removeAll()
+		}
+		try super.tearDownWithError()
 	}
 
 	func testSetShortcutAndReset() throws {

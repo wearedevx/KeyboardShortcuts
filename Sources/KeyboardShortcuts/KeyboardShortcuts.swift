@@ -5,6 +5,21 @@
      Global keyboard shortcuts for your macOS app.
      */
     public enum KeyboardShortcuts {
+        /// Production uses standard preferences; XCTest gets a clean, process-local suite.
+        public static let defaults: UserDefaults = {
+            guard NSClassFromString("XCTestCase") != nil
+                || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            else {
+                return .standard
+            }
+
+            let suiteName = "KeyboardShortcuts.tests.\(ProcessInfo.processInfo.processIdentifier)"
+            let defaults = UserDefaults(suiteName: suiteName)!
+            // Static initialization clears only this test process's domain, exactly once.
+            defaults.removePersistentDomain(forName: suiteName)
+            return defaults
+        }()
+
         public enum Access: String, Codable, Sendable {
             case appLocal
             case systemGlobal
@@ -298,9 +313,9 @@
         }
 
         public static func getName(for shortcut: Shortcut) -> Name? {
-            let defaults = UserDefaults.standard.dictionaryRepresentation()
+            let storedValues = defaults.dictionaryRepresentation()
 
-            let names = defaults.keys
+            let names = storedValues.keys
                 .filter { $0.hasPrefix(userDefaultsPrefix) }
                 .map { Name(String($0.dropFirst(userDefaultsPrefix.count))) }
 
@@ -320,7 +335,7 @@
          */
         public static func getShortcut(for name: Name) -> Shortcut? {
             guard
-                let data = UserDefaults.standard.string(forKey: userDefaultsKey(for: name))?.data(using: .utf8),
+                let data = defaults.string(forKey: userDefaultsKey(for: name))?.data(using: .utf8),
                 let decoded = try? JSONDecoder().decode(Shortcut.self, from: data)
             else {
                 return nil
@@ -473,7 +488,7 @@
             }
 
             register(shortcut)
-            UserDefaults.standard.set(encoded, forKey: userDefaultsKey(for: name))
+            defaults.set(encoded, forKey: userDefaultsKey(for: name))
             userDefaultsDidChange(name: name)
         }
 
@@ -482,7 +497,7 @@
                 return
             }
 
-            UserDefaults.standard.set(false, forKey: userDefaultsKey(for: name))
+            defaults.set(false, forKey: userDefaultsKey(for: name))
             unregister(shortcut)
             userDefaultsDidChange(name: name)
         }
@@ -492,13 +507,13 @@
                 return
             }
 
-            UserDefaults.standard.removeObject(forKey: userDefaultsKey(for: name))
+            defaults.removeObject(forKey: userDefaultsKey(for: name))
             unregister(shortcut)
             userDefaultsDidChange(name: name)
         }
 
         static func userDefaultsContains(name: Name) -> Bool {
-            UserDefaults.standard.object(forKey: userDefaultsKey(for: name)) != nil
+            defaults.object(forKey: userDefaultsKey(for: name)) != nil
         }
     }
 

@@ -113,6 +113,45 @@ final class SettingsViewController: NSViewController {
 }
 ```
 
+##### External clear control
+
+`RecorderCocoa` uses its native clear button by default (`usesNativeClearButton: true`). Set it to `false` when supplying your own trailing clear control. The recorder hides the native button, reserves 21 points of text space while a shortcut is displayed, and passes mouse-up events through to your control.
+
+```swift
+let recorder = KeyboardShortcuts.RecorderCocoa(
+	for: .toggleUnicornMode,
+	usesNativeClearButton: false,
+	onChange: { shortcut, post in
+		// Update any custom UI or validate the changed shortcut.
+		post(.valid)
+	},
+	onClear: {
+		// Update any custom UI after clearing.
+	}
+)
+
+// Call from your external clear control's action.
+recorder.clearShortcut()
+
+// Call when ending recording without clearing the shortcut.
+recorder.endRecording()
+```
+
+`clearShortcut()` clears the stored shortcut, ends recording, relinquishes the recorder's focus, and calls `onChange` with `nil`, followed by `onClear`. In external-clear mode, `post(.reset)` rejects a recorded shortcut only if it is still current; delayed callbacks cannot clear a newer recording. `endRecording()` leaves focus and storage unchanged and releases the shared shortcut pause only when this recorder owns it. Recording also ends when the recorder leaves its window or the window resigns key status.
+
+## Testing
+
+Library preferences use `KeyboardShortcuts.defaults`: standard preferences in normal
+applications, or a process-specific `KeyboardShortcuts.tests.<PID>` suite when XCTest
+is loaded. Tests that seed preference values should use this store rather than
+`UserDefaults.standard`. The test suite is cleared once when its store initializes.
+
+Run the recorder regressions with parallel testing enabled:
+
+```sh
+swift test --parallel --filter RecorderCocoaExternalClearTests
+```
+
 ## Localization
 
 This package supports [localizations](/Sources/KeyboardShortcuts/Localization). PR welcome for more!
